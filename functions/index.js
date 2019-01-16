@@ -27,8 +27,9 @@ const secureCompare = require('secure-compare');
 exports.githubWebhook = functions.https.onRequest(async (req, res) => {
   const cipher = 'sha1';
   const signature = req.headers['x-hub-signature'];
+  const { body } = req
 
-  // TODO: Configure the `github.secret` Google Cloud environment variables.
+  // See README for how to onfigure the `github.secret` Google Cloud environment variables.
   const hmac = crypto.createHmac(cipher, functions.config().github.secret)
       .update(req.body)
       .digest('hex');
@@ -39,9 +40,15 @@ exports.githubWebhook = functions.https.onRequest(async (req, res) => {
     console.error('x-hub-signature', signature, 'did not match', expectedSignature);
     return res.status(403).send('Your x-hub-signature\'s bad and you should feel bad!');
   }
-  
+
+  const { repository, sender } = body;
+  const repo = repository.name;
+  const stars = repository.stargazers_count;
+  const username = sender.login;
+  const url = sender.html_url;
+
   try {
-    await postToSlack(req.body.compare, req.body.commits.length, req.body.repository);
+    await postToSlack(repo, stars, username, url);
     return res.end();
   } catch(error) {
     console.error(error);
@@ -52,14 +59,17 @@ exports.githubWebhook = functions.https.onRequest(async (req, res) => {
 /**
  * Post a message to Slack about the new GitHub commit.
  */
-function postToSlack(url, commits, repo) {
+function postToSlack(repo, stars, username, url) {
+  const text = [
+    `New Github star for _${repo}_ repo!.`,
+    `The *${repo}* repo now has *${stars}* stars! :tada:.`,
+    `Your new fan is <${url}|${username}>`
+  ].join('\n');
   return rp({
     method: 'POST',
-    // TODO: Configure the `slack.webhook_url` Google Cloud environment variables.
+    // See README for how to configure the `slack.webhook_url` Google Cloud environment variables.
     uri: functions.config().slack.webhook_url,
-    body: {
-      text: `<${url}|${commits} new commit${commits > 1 ? 's' : ''}> pushed to <${repo.url}|${repo.full_name}>.`,
-    },
+    body: { text },
     json: true,
   });
 }

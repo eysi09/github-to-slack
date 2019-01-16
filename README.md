@@ -1,3 +1,11 @@
+# Post Github watch events (stars) to Slack Channel :star:
+
+Code obtained from this [Firebase function example](https://github.com/firebase/functions-samples/tree/Node-8/github-to-slack).
+
+The original project assumes we're posting Github commits to Slack but here we're only interested in stars.
+
+Original README below:
+
 # Post GitHub commits to Slack channel.
 
 This sample shows how to automatically post GitHub commits to a Slack channel using an HTTPS Cloud Function.
